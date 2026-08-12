@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping"
+type: software
+authors:
+  - family-names: Wu
+    given-names: Yuliang
+  - family-names: Lin
+    given-names: Yanhan
+  - family-names: Lao
+    given-names: WengKit
+  - family-names: Lin
+    given-names: Yuhao
+  - family-names: Wei
+    given-names: Yi-Lin
+  - family-names: Zheng
+    given-names: Wei-Shi
+  - family-names: Wu
+    given-names: Ancong
+version: "2026"
+date-released: 2026-08-11
+url: https://yliangwu.github.io/DexGrasp-Zero/docs/
+repository-code: https://github.com/yliangwu/DexGrasp-Zero
+doi: 10.48550/arXiv.2603.16806
+identifiers:
+  - type: arxiv
+    value: "2603.16806"

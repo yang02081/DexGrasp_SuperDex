@@ -1,0 +1,14 @@
+__pycache__/
+**/__pycache__
+*.py[cod]
+*.so
+.idea/
+wandb/
+**/bin/
+**/*.blob
+build/
+dist/
+*.egg-info/
+env/test_scripts/1.txt
+helper/1.txt
+开源.md

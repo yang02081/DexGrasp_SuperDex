@@ -1,0 +1,63 @@
+model_type: gnn
+aux_invalid_axis_l2_coef: 0.01
+version: v4
+#【infoB early fusion + infoC decoder】:
+  # infoA             →                       |
+  #                                            -> encoder_layer_i ->...-> node_feature\
+  # (infoB+specific space )-> MLP -> encodeB |                                         -> decoder_layer -> JOINT
+  #                                                                             infoC/
+use_urdf: true
+gnn_params:
+  node_dim: 16
+  edge_dim: 1
+  global_dim: 24
+  gcn_layers:
+    - out_dim: 128
+      activation: relu
+      norm: layer
+    - out_dim: 256
+      activation: relu
+      norm: layer
+    - out_dim: 256
+      activation: relu
+      norm: layer
+    - out_dim: 256
+      activation: relu
+      norm: layer
+    - out_dim: 256
+      activation: relu
+      norm: layer
+    - out_dim: 256
+      activation: relu
+      norm: layer
+  global_mlp:
+    hidden_dims: [256]
+    activation: leaky_relu
+  rt_head:
+    hidden_dims: [128]
+    activation: leaky_relu
+    out_dim: 6
+  joint_head:
+    hidden_dims: [128]
+    activation: leaky_relu
+    out_dim: 3 
+
+# InfoB (Finger ID & Node Semantic) Configuration
+infoB_config:
+  input_dim: 34 # 6 (FingerIdType one-hot) + 6 (NodeTypeSemantic incl. METACARPAL) + 22 (URDF feature)
+  use_fusion_mlp: True 
+  fusion_mlp:
+    embedded_dim: 16 
+    hidden_dims: [32]
+    activation: leaky_relu
+
+# InfoC (Semantic Axis Validity) Configuration
+infoC_config:
+  input_dim: 3 # 1 (flex_valid) + 1 (abd_valid) + 1 (rot_valid)
+
+# Critic Specific Parameters (if different from Actor or additional)
+critic_gnn_params:
+  value_head:
+    hidden_dims: [128]
+    out_dim: 1 # Output dimension for value prediction
+    activation: relu
