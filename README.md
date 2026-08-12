@@ -141,3 +141,16 @@ the visualization port is fixed.
 ## License
 
 The repository does not currently include a license file. Add the project license and review the RaiSim/GraspXL and asset licenses before public release.
+
+
+# Acknowledgement 
+This implementation builds on the following codebases:
+
+raisim: https://raisim.com/
+
+GraspXL: https://github.com/zdchan/GraspXL
+
+RobustDexGrasp: https://zdchan.github.io/Robust_DexGrasp/
+
+# Contact
+If you have any questions, issues, or feedback, please contact Yuliang Wu (wuyliang7@mail2.sysu.edu.cn).
