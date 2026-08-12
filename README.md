@@ -1,10 +1,10 @@
 
-# DexGrasp-Zero
+# DexGrasp-Zero [RSS2026]
 
 Official implementation of **DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping** (RSS 2026).
 
 Project page: <https://yliangwu.github.io/DexGrasp-Zero/docs/>  
-Paper: <https://arxiv.org/abs/2603.16806>
+Paper: <https://www.roboticsproceedings.org/rss22/p122.pdf>
 
 This project implements a reinforcement learning framework for cross-embodiment grasping generalization across multiple dexterous hands, with a unified semantic action space and graph-based state representation.
 
