@@ -1,156 +1,108 @@
+# DexGrasp-Zero on SuperDex
 
-# DexGrasp-Zero [RSS2026]
+This repository ports the **Shadow Hand evaluation path of DexGrasp-Zero** from Raisim to the SuperDex physics backend. The original MAGCN architecture, pretrained checkpoint, graph representation, 28-D action interface, labelled YCB pre-grasps, and evaluation data are retained; the simulation, controller, contact queries, and GUI run through SuperDex.
 
-Official implementation of **DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping** (RSS 2026).
+> Current scope: Shadow Hand evaluation and physics-alignment diagnostics. Allegro has been validated separately, but its cross-hand MAGCN backend is not yet included here. Other hand morphologies are future work.
 
-Project page: <https://yliangwu.github.io/DexGrasp-Zero/docs/>  
-Paper: <https://www.roboticsproceedings.org/rss22/p122.pdf>
+## Implemented
 
-This project implements a reinforcement learning framework for cross-embodiment grasping generalization across multiple dexterous hands, with a unified semantic action space and graph-based state representation.
+- Shadow Hand loading with repaired inertial and Raisim-aligned collision resources;
+- original 28-D residual policy action;
+- 268-D MAGCN observation and 179-D global-state contracts;
+- original `model/multi_hand/full_2700_r.pt` checkpoint loading;
+- labelled YCB reset poses and YCB45 batch evaluation;
+- 10 ms policy period with four SuperDex physics substeps;
+- Pose Controller actuation, gravity, table support, and object release;
+- hand-object contact and impulse features;
+- root guidance, lift evaluation, GUI replay, and per-step traces;
+- paired Raisim/SuperDex diagnostic entry point.
 
----
+The port remains under calibration for backend-specific contact and lift-phase wrist dynamics. The options `--freeze-wrist-rotation` and `--zero-wrist-rotation-action` are diagnostic controls and must not be used when reporting final protocol results.
 
-## Installation and build
+## Requirements
 
-For good practice for Python package management, it is recommended to use virtual environments (e.g., `virtualenv` or `conda`) to ensure packages from different projects do not interfere with each other.
+Use a Python environment containing:
 
-1. **Download GraspXL and set up RaiSim**
+- SuperDex;
+- PyTorch compatible with the installed CUDA driver;
+- NumPy, SciPy, trimesh, joblib, and PyYAML.
 
-   Download [GraspXL](https://github.com/zdchan/GraspXL) and set up RaiSim by following its README. A valid RaiSim license is required.
+The repository already contains the original MAGCN model artifacts and YCB resources expected by the evaluator. Virtual environments and generated results are intentionally excluded from Git.
 
-2. **Place the code**
-   Clone or copy this repository as `dexgrasp_zero` under the GraspXL `raisimGymTorch` directory:
+## GUI evaluation
 
-   ```
-   GraspXL/raisimGymTorch/dexgrasp_zero/
-   ```
+Run from the repository root:
 
-3. **Build the RaiSim extension**
-
-   The directory placement is required because the build resolves RaiSim, Eigen,
-   and pybind11 from the surrounding GraspXL checkout. Put this repository at
-   `GraspXL/raisimGymTorch/dexgrasp_zero/`, then install the dependencies
-   and build the extension in editable mode:
-
-   ```
-   conda activate graspxl310
-   cd GraspXL/raisimGymTorch/dexgrasp_zero
-   # Install a PyTorch build matching your CUDA driver first.
-   pip install -r requirements.txt
-   python -m pip install -e . --no-build-isolation
-   ```
-
-   Re-run the editable-install command after changing a C++ environment header.
-   A successful Python 3.10 build creates
-   `env/bin/cross_hand.cpython-310-x86_64-linux-gnu.so`. The build locates RaiSim
-   at `GraspXL/raisim/` and Eigen/pybind11 under `GraspXL/thirdParty/`.
-
-## Experiments
-
-The provided model artifacts are under `model/multi_hand`. Evaluation can use this directory directly. Training and evaluation default to the YCB dataset; the evaluator resolves `ycb` to `rsc/ycb_crossDex`.
-
-Run the Python entry points from the GraspXL `raisimGymTorch` parent directory so that the `dexgrasp_zero` package is importable:
-
-```
-cd GraspXL/raisimGymTorch
+```bash
+python env/test_scripts/eval_shadow_superdex.py \
+  --object-id 058_golf_ball \
+  --episodes 1 \
+  --steps 200 \
+  --seed 1 \
+  --label-index 16 \
+  --visualize \
+  --realtime-factor 0.25 \
+  --output runs/shadow_superdex/gui_label16.json
 ```
 
+Useful diagnostic options:
 
-Training example (you can choose one or more hand models for training):
-```
-python -m dexgrasp_zero.env.envs.cross_hand.runner \
-    -hand  shadow \   
-    -e 0105train \
-    -ln train_for_shadow \
-	-dataset ycb
-```
-Multi-hand training:
-
-```
-python -m dexgrasp_zero.env.envs.cross_hand.runner \
-    -hand  allegro shadow ability schunk \   
-    -e 0105train \
-    -ln train_for_allegro+shadow+ability+schunk \
-    -obj_repeate_scale 1 \
-	-dataset ycb
+```text
+--trace-output PATH               Save every policy/control step
+--disable-lift-guidance           Inspect interaction without the lift test
+--lift-ramp-steps 50              Apply the lift target gradually
+--freeze-wrist-rotation           Lock wrist rotation for diagnosis
+--zero-wrist-rotation-action      Zero policy action[3:6] while retaining guidance
 ```
 
-Evaluation on YCB:
+## YCB45 evaluation
 
-```
-python -m dexgrasp_zero.env.test_scripts.eval \
-    --hand leap \
-    --weight_dir dexgrasp_zero/model/multi_hand \
-    --updates 25 \
-    --dataset ycb
+```bash
+python env/test_scripts/run_shadow_superdex_public_ycb45.py \
+  --episodes-per-object 25 \
+  --output-dir runs/shadow_superdex/ycb45
 ```
 
-- Automatically loads the latest checkpoint and its config under `weight_dir`;
-- Runs 25 evaluation updates by default; `--updates 25` is shown explicitly for reproducibility;
-- You can specify a particular checkpoint with `--weight_id`;
-- Uses YCB (`rsc/ycb_crossDex`) by default, so `--dataset ycb` may be omitted;
-- Supports zero-shot cross-hand testing (e.g., train on `allegro`, test on `shadow`).
+The object list is stored in `env/test_scripts/crossdex_ycb_45.txt`. Results should only be compared when the checkpoint, object list, labelled pre-grasps, episode length, lift command, and success rule are identical.
 
-## Visualization
+## Tests
 
-DexGrasp-Zero uses the RaiSimUnity visualizer shipped with GraspXL. On Linux,
-start RaiSimUnity in one terminal:
-
-```
-cd GraspXL
-./raisimUnity/linux/raisimUnity.x86_64
+```bash
+python env/test_scripts/test_shadow_superdex_contract.py
+python env/test_scripts/test_shadow_superdex_physics_alignment.py
 ```
 
-Enable **Auto-connect** in the RaiSimUnity window. Then run a small visualized
-evaluation in another terminal:
+## Code layout
 
-```
-conda activate graspxl310
-cd GraspXL/raisimGymTorch
-python -m dexgrasp_zero.env.test_scripts.eval \
-    --hand leap \
-    --weight_dir dexgrasp_zero/model/multi_hand \
-    --dataset ycb \
-    --obj_num 1 \
-    --obj_id 0 \
-    --updates 1 \
-    --visualize \
-    --realtime
-```
+- `env/superdex/shadow_superdex_env.py`: SuperDex scene, actors, controller, and contacts.
+- `env/superdex/shadow_crosshand_superdex_env.py`: DexGrasp-Zero action, observation, reset, and root-guidance contract.
+- `env/superdex/shadow_superdex_spec.py`: Shadow joint and action mapping.
+- `env/test_scripts/eval_shadow_superdex.py`: single-object evaluation and GUI entry point.
+- `env/test_scripts/run_shadow_superdex_*ycb45.py`: batch evaluation protocols.
+- `env/test_scripts/compare_shadow_backends.py`: paired Raisim/SuperDex diagnosis; its Raisim side requires a valid Raisim license.
+- `SUPERDEX.md`: additional implementation notes.
 
-`--visualize` starts the RaiSim server on port `8081`, and only the first
-environment is rendered. `--realtime` limits the simulation to the configured
-control rate so that the motion is easier to inspect. Omit `--realtime` for
-maximum evaluation speed. Only run one visualized evaluation at a time because
-the visualization port is fixed.
+## Upstream project
 
-## BibTeX
+This work is based on [DexGrasp-Zero](https://github.com/YliangWu/DexGrasp-Zero-code):
 
-```
+> DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping, RSS 2026.
+
+- [Project page](https://yliangwu.github.io/DexGrasp-Zero/docs/)
+- [Paper](https://www.roboticsproceedings.org/rss22/p122.pdf)
+
+```bibtex
 @misc{wu2026dexgraspzeromorphologyalignedpolicyzeroshot,
-      title={DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping}, 
-      author={Yuliang Wu and Yanhan Lin and WengKit Lao and Yuhao Lin and Yi-Lin Wei and Wei-Shi Zheng and Ancong Wu},
-      year={2026},
-      eprint={2603.16806},
-      archivePrefix={arXiv},
-      primaryClass={cs.RO},
-      url={https://arxiv.org/abs/2603.16806}, 
+  title={DexGrasp-Zero: A Morphology-Aligned Policy for Zero-Shot Cross-Embodiment Dexterous Grasping},
+  author={Yuliang Wu and Yanhan Lin and WengKit Lao and Yuhao Lin and Yi-Lin Wei and Wei-Shi Zheng and Ancong Wu},
+  year={2026},
+  eprint={2603.16806},
+  archivePrefix={arXiv},
+  primaryClass={cs.RO},
+  url={https://arxiv.org/abs/2603.16806}
 }
 ```
 
-## License
+## License and assets
 
-The repository does not currently include a license file. Add the project license and review the RaiSim/GraspXL and asset licenses before public release.
-
-
-# Acknowledgement 
-This implementation builds on the following codebases:
-
-raisim: https://raisim.com/
-
-GraspXL: https://github.com/zdchan/GraspXL
-
-RobustDexGrasp: https://zdchan.github.io/Robust_DexGrasp/
-
-# Contact
-If you have any questions, issues, or feedback, please contact Yuliang Wu (wuyliang7@mail2.sysu.edu.cn).
+The upstream checkout does not currently include a license file. Review the DexGrasp-Zero, SuperDex, GraspXL, model, YCB, and robot-asset licenses before redistribution or public release.
