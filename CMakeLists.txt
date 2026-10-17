@@ -7,13 +7,28 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env/bin)
 
 get_filename_component(GRASPXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+# The upstream layout places this repository below GraspXL/raisimGymTorch.
+# Also support the workspace layout used by the SuperDex port, where both
+# repositories are siblings.
+if (NOT EXISTS "${GRASPXL_ROOT}/raisim")
+    get_filename_component(_WORKSPACE_GRASPXL "${CMAKE_CURRENT_SOURCE_DIR}/../GraspXL" ABSOLUTE)
+    if (EXISTS "${_WORKSPACE_GRASPXL}/raisim")
+        set(GRASPXL_ROOT "${_WORKSPACE_GRASPXL}")
+    endif()
+endif()
 
 set(PYBIND11_SOURCE_DIR "${GRASPXL_ROOT}/thirdParty/pybind11")
 if (NOT EXISTS "${PYBIND11_SOURCE_DIR}/CMakeLists.txt")
     set(PYBIND11_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../thirdParty/pybind11")
 endif()
 
-add_subdirectory(${PYBIND11_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pybind11)
+# pybind11 2.9 bundled with the original project does not compile against
+# Python 3.12. Prefer a compatible system package when available, then fall
+# back to the upstream bundled source for older Python installations.
+find_package(pybind11 2.10 CONFIG QUIET)
+if (NOT pybind11_FOUND)
+    add_subdirectory(${PYBIND11_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pybind11)
+endif()
 list(APPEND CMAKE_PREFIX_PATH "${GRASPXL_ROOT}/thirdParty/Eigen3")
 find_package(Eigen3 CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)

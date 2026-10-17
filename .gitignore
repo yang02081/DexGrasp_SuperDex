@@ -12,3 +12,9 @@ dist/
 env/test_scripts/1.txt
 helper/1.txt
 开源.md
+
+# Local SuperDex runtime and generated evaluation artifacts
+/runs/
+/mochi_debugger_imgui.ini
+*.trace.json
+*_trace.json

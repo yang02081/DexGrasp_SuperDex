@@ -1,4 +1,3 @@
-import imp
 import torch.nn as nn
 import torch
 import collections # Added this import

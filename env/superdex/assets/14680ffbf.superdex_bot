@@ -1,0 +1,77 @@
+{
+  "defaultPose": [
+    0
+  ],
+  "joints": [
+    {
+      "name": "world_joint",
+      "type": "Free"
+    },
+    {
+      "axis": [
+        0,
+        0,
+        -1
+      ],
+      "effortLimit": 0.10000000149011612,
+      "friction": {
+        "coulomb": 1,
+        "viscous": 1
+      },
+      "maxLimit": [
+        0,
+        0,
+        -0.0010000000474974513
+      ],
+      "minLimit": [
+        0,
+        0,
+        -0
+      ],
+      "name": "rotation",
+      "type": "Revolute"
+    }
+  ],
+  "links": [
+    {
+      "centerOfMass": [
+        0.34640800952911377,
+        0.34640800952911377,
+        0.34640800952911377
+      ],
+      "mass": 0.00098000001162290573,
+      "momentOfInertia": [
+        1.6333332908402554e-08,
+        5.4474806420292191e-19,
+        5.4474806420292191e-19,
+        1.6333332908402554e-08,
+        5.4474806420292191e-19,
+        1.6333332908402554e-08
+      ],
+      "name": "bottom",
+      "renderModel": "render/bottom_watertight_tiny.glb",
+      "shape": "collision/bottom_watertight_tiny.mochi.h5"
+    },
+    {
+      "centerOfMass": [
+        -0.00068267917959019542,
+        -0.0010041915811598301,
+        -0.0018609417602419853
+      ],
+      "mass": 1.0423096418380737,
+      "momentOfInertia": [
+        0.0047783707268536091,
+        0.00028497262974269688,
+        0.00068837247090414166,
+        0.0038467571139335632,
+        -0.00077807059278711677,
+        0.001630073762498796
+      ],
+      "name": "top",
+      "parentLink": 0,
+      "renderModel": "render/top_watertight_tiny.glb",
+      "shape": "collision/top_watertight_tiny.mochi.h5"
+    }
+  ],
+  "name": "14680ffbf"
+}

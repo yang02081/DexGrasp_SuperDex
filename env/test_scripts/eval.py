@@ -2,6 +2,7 @@
 
 import argparse
 import glob
+import json
 import os
 import time
 from typing import Callable, Dict, Tuple, Optional, List
@@ -237,6 +238,10 @@ def main():
     parser.add_argument("--obj_id", type=int, default=-1)
     parser.add_argument("--updates", type=int, default=25)
     parser.add_argument("--steps", type=int, default=200)
+    parser.add_argument("--objects", nargs="+", default=None,
+                        help="exact object directory names to evaluate")
+    parser.add_argument("--output_json", type=str, default=None,
+                        help="optional per-object/per-label result JSON")
     parser.add_argument("--visualize", action="store_true", help="enable the RaiSim visualization server")
     parser.add_argument("--realtime", action="store_true", help="pace simulation steps to the control period")
     parser.add_argument(
@@ -267,16 +272,27 @@ def main():
 
     # paths / objects
     task_path = os.path.dirname(os.path.realpath(__file__))
-    home_path = os.path.abspath(os.path.join(task_path, "../../../../"))
-    raisim_gym_torch_root = os.path.abspath(os.path.join(task_path, "../../.."))
+    # Resolve resources from this checkout. The historical four-level parent
+    # assumed the repository lived under GraspXL/raisimGymTorch and is invalid
+    # for a standalone checkout.
+    home_path = TASK_PATH
+    raisim_gym_torch_root = os.path.dirname(TASK_PATH)
     cat_name = args.dataset
     if cat_name == "ycb":
         cat_name = "ycb_crossDex"
     directory_path = os.path.join(home_path, f"rsc/{cat_name}/")
     items = os.listdir(directory_path)
-    folder_names = [item for item in items if os.path.isdir(os.path.join(directory_path, item))]
-    obj_list = folder_names.copy()
-    if args.obj_num > 0:
+    folder_names = sorted(
+        item for item in items if os.path.isdir(os.path.join(directory_path, item))
+    )
+    if args.objects:
+        missing = sorted(set(args.objects) - set(folder_names))
+        if missing:
+            raise ValueError(f"unknown object directories: {missing}")
+        obj_list = list(args.objects)
+    else:
+        obj_list = folder_names.copy()
+    if args.obj_num > 0 and not args.objects:
         if args.obj_id != -1:
             obj_list = [obj_list[args.obj_id]]
             obj_list = obj_list * args.obj_num
@@ -353,6 +369,7 @@ def main():
     eval_spec = None
 
     all_new_labels = {}
+    paired_results = []
 
     for update in range(args.updates):
         print("update", update)
@@ -412,6 +429,15 @@ def main():
         lifted = compute_lifted_mask(eval_spec, obs_r, global_state, obj_pose_reset, lift_height_thresh=0.1, center_thresh=0.1)
         metrics = compute_eval_metrics(eval_spec, obs_r, global_state)
         print_batch_report(obj_names_in_env, lifted, metrics, global_state, eval_spec)
+        for i, object_id in enumerate(obj_names_in_env):
+            paired_results.append({
+                "object_id": str(object_id),
+                "label_index": int(update),
+                "success": bool(lifted[i]),
+                "center_error": float(metrics["center_error"][i]),
+                "final_object_height": float(global_state[i, eval_spec.obj_pos_z_idx]),
+                "initial_object_height": float(obj_pose_reset[i, 2]),
+            })
         eval_running.update_from_batch(lifted, metrics, update=update)
         print_running_report(eval_running)
 
@@ -426,6 +452,24 @@ def main():
             print(f"Saving {len(labels)} generated labels for {obj_name} to {save_path}")
             joblib.dump(labels, save_path)
 
+    if args.output_json:
+        output = {
+            "backend": "raisim",
+            "hand": args.hand,
+            "checkpoint": weight_file,
+            "objects": list(obj_list),
+            "updates": int(args.updates),
+            "steps": int(args.steps),
+            "episodes": len(paired_results),
+            "success_rate": float(np.mean([r["success"] for r in paired_results])),
+            "results": paired_results,
+        }
+        output_path = os.path.abspath(args.output_json)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(output, f, indent=2)
+            f.write("\n")
+        print(f"paired result JSON: {output_path}")
     print("done")
 
 
